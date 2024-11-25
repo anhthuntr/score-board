@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeMount, ref } from 'vue';
+import { onBeforeMount, ref, watch } from 'vue';
 import {
   NForm,
   NFormItem,
@@ -10,19 +10,22 @@ import {
   NRadio,
   NAvatar,
   NAlert,
-  NCard
+  NCard,
+  useMessage
 } from 'naive-ui';
-import { Player } from '@/types';
-import { scoreRates } from '@/constants';
+import { Game, Player, PlayerGame } from '@/types';
+import { GameType, scoreRates } from '@/constants';
 import { api } from '@/server/api';
 
 const players = ref<Player[]>([]);
 
+const playerScores = ref<PlayerGame[]>([]);
+
 interface MahjongForm {
-  winnerId?: string;
+  winnerId?: number;
   scores?: number;
   isSelfDrawn: boolean;
-  discardId?: string;
+  discardId?: number;
 }
 
 const formRef = ref<FormInst | null>(null);
@@ -35,16 +38,75 @@ const rules = {
   scores: {
     required: true,
     message: 'Please input the score'
+  },
+  discardId: {
+    required: !formValue.value.isSelfDrawn,
+    message: 'Please select a discarder'
   }
 };
-const addScore = (e: MouseEvent) => {
+
+const calculateScores = () => {
+  const { winnerId, scores, isSelfDrawn, discardId } = formValue.value;
+
+  const loseValue = ((!isSelfDrawn ? scores : (scores || 0) / 2) ?? 0) * -1;
+  const winValue = (!isSelfDrawn ? scores : ((scores || 0) * 3) / 2) ?? 0;
+
+  const newGame: Game = {
+    winnerId,
+    scoreValue: scores,
+    type: GameType.Mahjong,
+    discardId: isSelfDrawn ? undefined : discardId
+  };
+  const playerGames = players.value.map((i) => {
+    const isWinning = i.id === winnerId;
+    const isDiscarding = i.id === discardId;
+    let amount = 0;
+    if (isWinning) {
+      // is winner
+      amount = winValue;
+    } else if ((isDiscarding && !isSelfDrawn) || (!isWinning && isSelfDrawn)) {
+      // is discarder OR lose in self drawn
+      amount = loseValue;
+    } else if (!isWinning && !isSelfDrawn && !isDiscarding) {
+      // is NOT a discarder
+      amount = 0;
+    }
+
+    return { amount, playerId: i.id };
+  });
+
+  playerScores.value = playerGames;
+
+  return { game: newGame, playerGames };
+};
+
+const addGame = async () => {
+  const newGame = calculateScores();
+
+  await api.addMahjongScores(newGame.game, newGame.playerGames);
+
+  await api.updatePlayersPoints(
+    players.value.map((i) => ({
+      ...i,
+      totalPoints:
+        (i.totalPoints ?? 0) +
+        (playerScores.value.find((s) => s.playerId === i.id)?.amount ?? 0)
+    }))
+  );
+  players.value = await api.getAllPlayers();
+
+  formValue.value = { isSelfDrawn: false };
+  formRef.value?.restoreValidation();
+};
+
+const validateInput = (e: MouseEvent) => {
   e.preventDefault();
   formRef.value?.validate((errors) => {
     // eslint-disable-next-line no-empty
     if (!errors) {
+      addGame();
     } else {
       console.log(errors);
-      // message.error('Invalid');
     }
   });
 };
@@ -52,20 +114,22 @@ const addScore = (e: MouseEvent) => {
 onBeforeMount(async () => {
   players.value = await api.getAllPlayers();
 });
+
+watch(
+  () => formValue.value,
+  () => {
+    const { winnerId, scores } = formValue.value;
+    if (winnerId && scores) {
+      calculateScores();
+    }
+  },
+  { deep: true, immediate: true }
+);
 </script>
 <template>
   <div>
     <div class="header">
       <h2 class="header-title">🀄Mahjong Scores🀄</h2>
-      <!-- <div style="display: flex; justify-content: center; gap: 1rem">
-        <span class="header-subtitle">Current players</span>
-
-        <div class="players">
-          <div v-for="player in players" :key="player.id">
-            <n-avatar round size="medium" :src="player.avatarUrl" />
-          </div>
-        </div>
-      </div> -->
     </div>
     <div class="background">
       <n-form
@@ -79,11 +143,11 @@ onBeforeMount(async () => {
           <n-card
             v-for="player in players"
             :key="player.id"
+            class="player-card"
             hoverable
             :style="{
               backgroundColor:
-                formValue.winnerId === player.id ? player.color : '',
-              textAlign: 'center'
+                formValue.winnerId === player.id ? player.color : ''
             }"
             :content-style="{ padding: '1rem' }"
             @click="formValue.winnerId = player.id"
@@ -99,24 +163,6 @@ onBeforeMount(async () => {
           </n-card>
         </n-form-item>
         <n-form-item label="Score" path="scores">
-          <!-- <n-radio-group
-            v-model:value="formValue.scores"
-            size="large"
-            style="width: 100%"
-          >
-            <n-radio-button
-              v-for="rate in scoreRates"
-              :key="rate.baseValue"
-              :value="rate.baseValue"
-              style="
-                width: calc(100% / 6);
-                text-align: center;
-                padding-left: 5px;
-              "
-            >
-              {{ rate.label }}
-            </n-radio-button>
-          </n-radio-group> -->
           <div class="container">
             <div
               class="tile"
@@ -134,10 +180,18 @@ onBeforeMount(async () => {
           <n-radio-group
             v-model:value="formValue.isSelfDrawn"
             size="large"
-            style="display: flex; flex-direction: column; gap: 1rem"
+            style="width: 100%"
           >
-            <n-radio :value="true" :label="'Self Drawn'" />
-            <n-radio :value="false" :label="'Discard'" />
+            <n-radio-button
+              :value="true"
+              :label="'Self Drawn'"
+              style="width: 50%"
+            />
+            <n-radio-button
+              :value="false"
+              :label="'Discard'"
+              style="width: 50%"
+            />
           </n-radio-group>
         </n-form-item>
         <n-form-item
@@ -145,37 +199,62 @@ onBeforeMount(async () => {
           path="discardId"
           v-if="!formValue.isSelfDrawn"
         >
-          <n-radio-group
-            v-model:value="formValue.discardId"
-            size="large"
-            style="width: 100%"
+          <n-card
+            v-for="player in players"
+            :key="player.id"
+            :hoverable="formValue.winnerId !== player.id"
+            :style="{
+              backgroundColor:
+                formValue.discardId === player.id
+                  ? player.color
+                  : formValue.winnerId === player.id
+                  ? '#30303077'
+                  : ''
+            }"
+            class="player-card"
+            :content-style="{ padding: '1rem' }"
+            @click="
+              if (player.id !== formValue.winnerId)
+                formValue.discardId = player.id;
+            "
           >
-            <n-radio-button
-              v-for="player in players"
-              :key="player.id"
-              :value="player.id"
-              style="width: 25%"
-              :disabled="player.id === formValue.winnerId"
+            <n-avatar round size="large" :src="player.avatarUrl" />
+            <div
+              :style="{
+                color: formValue.discardId === player.id ? 'black' : 'white'
+              }"
             >
               {{ player.name }}
-            </n-radio-button>
-          </n-radio-group>
+            </div>
+          </n-card>
         </n-form-item>
         <n-form-item>
-          <n-button @click="addScore" block type="primary" strong>
+          <n-button @click="validateInput" block type="primary" strong>
             Add Mahjong Score
           </n-button>
         </n-form-item>
       </n-form>
 
-      <div style="color: white">
+      <div style="color: white; display: flex; gap: 2rem">
         <div>
-          Winner: Player
-          {{ players.find((i) => i.id === formValue.winnerId)?.name }}
+          <div>
+            Winner:
+            {{ players.find((i) => i.id === formValue.winnerId)?.name }}
+          </div>
+          <div>
+            Discard:
+            {{ players.find((i) => i.id === formValue.discardId)?.name }}
+          </div>
         </div>
-        <div v-for="player in players" :key="player.id">
-          <span style="width: 5rem">{{ player.name }}</span>
-          <span style="width: 5rem">{{}}</span>
+        <div style="display: flex; gap: 1rem; text-align: center">
+          <div v-for="player in playerScores" :key="player.id">
+            <span>
+              {{ players.find((i) => i.id === player.playerId)?.name }}
+            </span>
+            <div>
+              {{ player.amount }}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -183,10 +262,9 @@ onBeforeMount(async () => {
 </template>
 <style scoped>
 .container {
-  font-size: 200%;
   display: flex;
   justify-content: space-around;
-  gap: 1em;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
@@ -223,25 +301,9 @@ onBeforeMount(async () => {
   background-color: #d6a274;
 }
 
-@media (max-width: 768px) {
-  .tile {
-    font-size: 18px;
-    width: 2.5em;
-    height: 3.33em;
-    line-height: 3.33em;
-  }
-  .container {
-    gap: 0.6em;
-  }
-}
-
 @media (max-width: 480px) {
-  .tile {
-    font-size: 14px;
-  }
-
   .container {
-    gap: 0.4em;
+    gap: 0.9em;
   }
 }
 
@@ -265,4 +327,11 @@ onBeforeMount(async () => {
   align-items: center;
   gap: 0.25rem;
 }
+.player-card {
+  text-align: center;
+}
+/* .player-card:hover {
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+  transform: translateY(-5px);
+} */
 </style>
