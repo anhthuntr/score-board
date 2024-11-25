@@ -1,14 +1,14 @@
 import { GameType } from '@/constants';
 
 export interface PlayerGame {
-  id: string;
+  id?: number;
   amount?: number;
-  playerId?: string;
-  gameId?: string;
+  playerId?: number;
+  gameId?: number;
 }
 
 export interface Player {
-  id: string;
+  id?: number;
   name: string;
   color: string;
   username?: string;
@@ -18,12 +18,12 @@ export interface Player {
 }
 
 export interface Game {
-  id: string;
+  id?: number;
   type: GameType;
-  winnerId?: string;
+  winnerId?: number;
   winnerName?: string;
   scoreValue?: number;
-  discardId?: string;
+  discardId?: number;
   discardName?: string;
   players?: PlayerGame[];
 }

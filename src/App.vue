@@ -8,7 +8,8 @@ import {
   NLayoutHeader,
   NSpace,
   NButton,
-  NEl
+  NEl,
+  NMessageProvider
 } from 'naive-ui';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
@@ -59,7 +60,9 @@ const toggleMenu = () => {
       </n-drawer>
     </n-layout>
 
-    <router-view />
+    <n-message-provider>
+      <router-view />
+    </n-message-provider>
   </n-config-provider>
 </template>
 
