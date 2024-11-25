@@ -13,8 +13,13 @@ onBeforeMount(async () => {
   <div class="content">
     <h1>Who's playing?</h1>
     <div class="players">
-      <div v-for="player in players" :key="player.id">
+      <div
+        v-for="player in players"
+        :key="player.id"
+        style="text-align: center"
+      >
         <n-avatar round :size="60" :src="player.avatarUrl" />
+        {{ player.name }}
       </div>
     </div>
   </div>
