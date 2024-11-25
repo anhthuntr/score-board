@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import {
   NForm,
   NFormItem,
@@ -7,23 +7,22 @@ import {
   NButton,
   NRadioGroup,
   NRadioButton,
-  NRadio
+  NRadio,
+  NAvatar,
+  NAlert,
+  NCard
 } from 'naive-ui';
-import { User } from '@/types';
+import { Player } from '@/types';
 import { scoreRates } from '@/constants';
+import { api } from '@/server/api';
 
-const players: User[] = [
-  { id: 1, name: 'Nghi', color: 'green' },
-  { id: 2, name: 'Thu', color: 'black' },
-  { id: 3, name: 'Giang', color: 'grey' },
-  { id: 4, name: 'Hang', color: 'purple' }
-];
+const players = ref<Player[]>([]);
 
 interface MahjongForm {
-  winnerId?: number;
+  winnerId?: string;
   scores?: number;
   isSelfDrawn: boolean;
-  discardId?: number;
+  discardId?: string;
 }
 
 const formRef = ref<FormInst | null>(null);
@@ -42,27 +41,28 @@ const addScore = (e: MouseEvent) => {
   e.preventDefault();
   formRef.value?.validate((errors) => {
     if (!errors) {
-      // message.success('Valid');
     } else {
       console.log(errors);
       // message.error('Invalid');
     }
   });
 };
+
+onBeforeMount(async () => {
+  players.value = await api.getAllPlayers();
+});
 </script>
 <template>
   <div>
     <div class="header">
       <h2 class="header-title">Mahjong Scores</h2>
-      <span class="header-subtitle">Current players</span>
-      <div class="players">
-        <div
-          v-for="player in players"
-          :key="player.id"
-          class="player"
-          :style="{ backgroundColor: player.color }"
-        >
-          {{ player.name }}
+      <div style="display: flex; justify-content: center; gap: 1rem">
+        <span class="header-subtitle">Current players</span>
+
+        <div class="players">
+          <div v-for="player in players" :key="player.id">
+            <n-avatar round size="medium" :src="player.avatarUrl" />
+          </div>
         </div>
       </div>
     </div>
@@ -75,21 +75,27 @@ const addScore = (e: MouseEvent) => {
         :size="'large'"
       >
         <n-form-item label="Winner" path="winnerId">
-          <n-radio-group
-            v-model:value="formValue.winnerId"
-            name="left-size"
-            size="large"
-            style="width: 100%"
+          <n-card
+            v-for="player in players"
+            :key="player.id"
+            hoverable
+            :style="{
+              backgroundColor:
+                formValue.winnerId === player.id ? player.color : '',
+              textAlign: 'center'
+            }"
+            :content-style="{ padding: '1rem' }"
+            @click="formValue.winnerId = player.id"
           >
-            <n-radio-button
-              v-for="player in players"
-              :key="player.id"
-              :value="player.id"
-              style="width: 25%"
+            <n-avatar round size="large" :src="player.avatarUrl" />
+            <div
+              :style="{
+                color: formValue.winnerId === player.id ? 'black' : 'white'
+              }"
             >
               {{ player.name }}
-            </n-radio-button>
-          </n-radio-group>
+            </div>
+          </n-card>
         </n-form-item>
         <n-form-item label="Score" path="scores">
           <n-radio-group
@@ -150,11 +156,14 @@ const addScore = (e: MouseEvent) => {
       </n-form>
 
       <div style="color: white">
-        <div>Winner: Player Nghi</div>
-        <div>Nghi: +8</div>
-        <div>Thu: -8</div>
-        <div>Giang: -8</div>
-        <div>Hang: -8</div>
+        <div>
+          Winner: Player
+          {{ players.find((i) => i.id === formValue.winnerId)?.name }}
+        </div>
+        <div v-for="player in players" :key="player.id">
+          <span style="width: 5rem">{{ player.name }}</span>
+          <span style="width: 5rem">{{}}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -178,11 +187,6 @@ const addScore = (e: MouseEvent) => {
   display: flex;
   justify-content: center;
   align-items: center;
-}
-.player {
-  width: 100%;
-  font-size: 14px;
-  width: 4rem;
-  margin-top: 0.25rem;
+  gap: 0.25rem;
 }
 </style>
