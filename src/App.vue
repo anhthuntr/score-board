@@ -29,7 +29,7 @@ const toggleMenu = () => {
     <n-layout>
       <n-layout-header class="nav-bar">
         <n-space justify="space-between" class="nav-content">
-          <n-el class="logo">Score Board</n-el>
+          <n-el class="logo"><a href="/">Score Board</a></n-el>
 
           <n-button @click="toggleMenu">
             <font-awesome-icon icon="bars" />
@@ -81,7 +81,7 @@ const toggleMenu = () => {
   width: 100%;
 }
 
-.logo {
+.logo a {
   font-size: 1.5rem;
   font-weight: bold;
   color: var(--primary-color);

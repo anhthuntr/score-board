@@ -40,6 +40,7 @@ const rules = {
 const addScore = (e: MouseEvent) => {
   e.preventDefault();
   formRef.value?.validate((errors) => {
+    // eslint-disable-next-line no-empty
     if (!errors) {
     } else {
       console.log(errors);
@@ -55,8 +56,8 @@ onBeforeMount(async () => {
 <template>
   <div>
     <div class="header">
-      <h2 class="header-title">Mahjong Scores</h2>
-      <div style="display: flex; justify-content: center; gap: 1rem">
+      <h2 class="header-title">🀄Mahjong Scores🀄</h2>
+      <!-- <div style="display: flex; justify-content: center; gap: 1rem">
         <span class="header-subtitle">Current players</span>
 
         <div class="players">
@@ -64,7 +65,7 @@ onBeforeMount(async () => {
             <n-avatar round size="medium" :src="player.avatarUrl" />
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
     <div class="background">
       <n-form
@@ -98,7 +99,7 @@ onBeforeMount(async () => {
           </n-card>
         </n-form-item>
         <n-form-item label="Score" path="scores">
-          <n-radio-group
+          <!-- <n-radio-group
             v-model:value="formValue.scores"
             size="large"
             style="width: 100%"
@@ -115,7 +116,19 @@ onBeforeMount(async () => {
             >
               {{ rate.label }}
             </n-radio-button>
-          </n-radio-group>
+          </n-radio-group> -->
+          <div class="container">
+            <div
+              class="tile"
+              v-for="rate in scoreRates"
+              :key="rate.baseValue"
+              :value="rate.baseValue"
+              :class="{ selected: formValue.scores === rate.baseValue }"
+              @click="formValue.scores = rate.baseValue"
+            >
+              {{ rate.label }}
+            </div>
+          </div>
         </n-form-item>
         <n-form-item label="Win By">
           <n-radio-group
@@ -169,6 +182,69 @@ onBeforeMount(async () => {
   </div>
 </template>
 <style scoped>
+.container {
+  font-size: 200%;
+  display: flex;
+  justify-content: space-around;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+.tile {
+  box-sizing: border-box;
+  font-weight: bolder;
+  font-size: 24px;
+  width: 1.5em;
+  height: 2em;
+  line-height: 2em;
+  text-align: center;
+  background: #f8f1ea;
+  border-radius: 0.125em;
+  border: 1px solid #999;
+  position: relative;
+  box-shadow: 0.1em 0.1em 0px 0px #999, 0.2em 0.2em 0px 0px #963;
+  cursor: pointer;
+  user-select: none;
+  pointer-events: auto;
+  /* color: #333; */
+  color: rgb(58, 54, 54);
+  padding-left: 2px;
+  /* text-shadow: -1px 0px 0px green, 1px 1px 0px #fff; */
+  transition: width 0.3s ease, font-size 0.3s ease;
+}
+
+.tile:hover,
+.tile:active {
+  transform: translateY(-5px);
+}
+
+.tile.selected {
+  transform: translateY(-5px);
+  background-color: #d6a274;
+}
+
+@media (max-width: 768px) {
+  .tile {
+    font-size: 18px;
+    width: 2.5em;
+    height: 3.33em;
+    line-height: 3.33em;
+  }
+  .container {
+    gap: 0.6em;
+  }
+}
+
+@media (max-width: 480px) {
+  .tile {
+    font-size: 14px;
+  }
+
+  .container {
+    gap: 0.4em;
+  }
+}
+
 .header-title {
   font-weight: 700;
   font-size: 32px;
