@@ -56,5 +56,16 @@ export const api = {
       return handleQuery<Player>(query);
     });
     return Promise.all(updatePromises);
+  },
+
+  async getPlayerById(e: Player[]) {
+    const playerIds = e.map((p) => p.id);
+    const query = supabase
+      .from('players')
+      .select(`id, username, name, color, totalPoints, avatarUrl`)
+      .in('id', playerIds)
+      .order('name');
+
+    return handleQuery<Player>(query);
   }
 };

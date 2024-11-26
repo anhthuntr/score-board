@@ -12,12 +12,29 @@ import {
   NMessageProvider
 } from 'naive-ui';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { supabase } from '@/server/supabase';
+import { User } from '@supabase/supabase-js';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
+const user = ref<User | null>(null);
+
+const logout = async () => {
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error('Error signing out:', error.message);
+  } else {
+    user.value = null;
+    router.push('/');
+  }
+};
 const showMenu = ref(false);
 
 const menuItems = ref([
   { name: 'Mahjong', link: '/mahjong' },
-  { name: 'Tien Len', link: '' }
+  { name: 'Tien Len', link: '' },
+  { name: 'Balance', link: '/about' },
+  { name: 'History', link: '/log' }
 ]);
 
 const toggleMenu = () => {
@@ -57,6 +74,9 @@ const toggleMenu = () => {
         >
           <n-el>{{ item.name }}</n-el>
         </n-button>
+        <div class="logout">
+          <button @click="logout" class="logout-button">Logout</button>
+        </div>
       </n-drawer>
     </n-layout>
 
@@ -97,5 +117,23 @@ const toggleMenu = () => {
 .desktop-menu {
   display: flex;
   gap: 12px;
+}
+.logout {
+  position: absolute;
+  top: 93%;
+  left: 35%;
+}
+.logout-button {
+  background-color: #ff4d4f;
+  color: white;
+  border: none;
+  padding: 7px 13px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.logout-button:hover {
+  background-color: #d9363e;
 }
 </style>
