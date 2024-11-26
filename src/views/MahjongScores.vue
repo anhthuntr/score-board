@@ -93,7 +93,11 @@ const addGame = async () => {
         (playerScores.value.find((s) => s.playerId === i.id)?.amount ?? 0)
     }))
   );
-  players.value = await api.getAllPlayers();
+
+  const fetchedPlayers = await api.getPlayerById(players.value);
+  if (fetchedPlayers && Array.isArray(fetchedPlayers)) {
+    players.value = fetchedPlayers;
+  }
 
   formValue.value = { isSelfDrawn: false };
   formRef.value?.restoreValidation();
@@ -112,7 +116,15 @@ const validateInput = (e: MouseEvent) => {
 };
 
 onBeforeMount(async () => {
-  players.value = await api.getAllPlayers();
+  const storedPlayers = localStorage.getItem('currentPlayers');
+  if (storedPlayers) {
+    const currentPlayers: Player[] = JSON.parse(storedPlayers);
+
+    const fetchedPlayers = await api.getPlayerById(currentPlayers);
+    if (fetchedPlayers && Array.isArray(fetchedPlayers)) {
+      players.value = fetchedPlayers;
+    }
+  }
 });
 
 watch(
@@ -154,6 +166,7 @@ watch(
           >
             <n-avatar round size="large" :src="player.avatarUrl" />
             <div
+              style="font-size: 13px"
               :style="{
                 color: formValue.winnerId === player.id ? 'black' : 'white'
               }"
@@ -220,6 +233,7 @@ watch(
           >
             <n-avatar round size="large" :src="player.avatarUrl" />
             <div
+              style="font-size: 13px"
               :style="{
                 color: formValue.discardId === player.id ? 'black' : 'white'
               }"
@@ -288,7 +302,6 @@ watch(
   color: rgb(58, 54, 54);
   padding-left: 2px;
   /* text-shadow: -1px 0px 0px green, 1px 1px 0px #fff; */
-  transition: width 0.3s ease, font-size 0.3s ease;
 }
 
 .tile:hover,
