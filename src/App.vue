@@ -33,7 +33,7 @@ const showMenu = ref(false);
 const menuItems = ref([
   { name: 'Mahjong', link: '/mahjong' },
   { name: 'Tien Len', link: '' },
-  { name: 'Wallet', link: '/about' },
+  { name: 'Balance', link: '/about' },
   { name: 'History', link: '/log' }
 ]);
 
