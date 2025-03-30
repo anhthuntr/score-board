@@ -24,12 +24,13 @@ const playerScores = ref<PlayerGame[]>([]);
 interface MahjongForm {
   winnerId?: number;
   scores?: number;
-  isSelfDrawn: boolean;
+  // isSelfDrawn: boolean;
+  winType: 'Self Drawn' | 'Discard' | 'Pay All';
   discardId?: number;
 }
 
 const formRef = ref<FormInst | null>(null);
-const formValue = ref<MahjongForm>({ isSelfDrawn: false });
+const formValue = ref<MahjongForm>({ winType: 'Self Drawn' });
 const rules = {
   winnerId: {
     required: true,
@@ -40,22 +41,24 @@ const rules = {
     message: 'Please input the score'
   },
   discardId: {
-    required: !formValue.value.isSelfDrawn,
+    required: formValue.value.winType !== 'Self Drawn',
     message: 'Please select a discarder'
   }
 };
 
 const calculateScores = () => {
-  const { winnerId, scores, isSelfDrawn, discardId } = formValue.value;
+  const { winnerId, scores, winType, discardId } = formValue.value;
 
-  const loseValue = ((!isSelfDrawn ? scores : (scores || 0) / 2) ?? 0) * -1;
-  const winValue = (!isSelfDrawn ? scores : ((scores || 0) * 3) / 2) ?? 0;
+  const loseValue =
+    ((winType === 'Discard' ? scores : (scores || 0) / 2) ?? 0) * -1;
+  const winValue =
+    (winType === 'Discard' ? scores : ((scores || 0) * 3) / 2) ?? 0;
 
   const newGame: Game = {
     winnerId,
     scoreValue: scores,
     type: GameType.Mahjong,
-    discardId: isSelfDrawn ? undefined : discardId
+    discardId: winType === 'Self Drawn' ? undefined : discardId
   };
   const playerGames = players.value.map((i) => {
     const isWinning = i.id === winnerId;
@@ -64,12 +67,18 @@ const calculateScores = () => {
     if (isWinning) {
       // is winner
       amount = winValue;
-    } else if ((isDiscarding && !isSelfDrawn) || (!isWinning && isSelfDrawn)) {
+    } else if (
+      (isDiscarding && winType === 'Discard') ||
+      (!isWinning && winType === 'Self Drawn')
+    ) {
       // is discarder OR lose in self drawn
       amount = loseValue;
-    } else if (!isWinning && !isSelfDrawn && !isDiscarding) {
+    } else if (!isWinning && winType === 'Discard' && !isDiscarding) {
       // is NOT a discarder
       amount = 0;
+    } else if (winType === 'Pay All' && isDiscarding) {
+      // is discarder in self drawn pay all
+      amount = loseValue * 3;
     }
 
     return { amount, playerId: i.id };
@@ -99,7 +108,7 @@ const addGame = async () => {
     players.value = fetchedPlayers;
   }
 
-  formValue.value = { isSelfDrawn: false };
+  formValue.value = { winType: 'Self Drawn' };
   formRef.value?.restoreValidation();
 };
 
@@ -191,26 +200,31 @@ watch(
         </n-form-item>
         <n-form-item label="Win By">
           <n-radio-group
-            v-model:value="formValue.isSelfDrawn"
+            v-model:value="formValue.winType"
             size="large"
             style="width: 100%"
           >
             <n-radio-button
-              :value="true"
+              :value="'Self Drawn'"
               :label="'Self Drawn'"
-              style="width: 50%"
+              style="width: 33%"
             />
             <n-radio-button
-              :value="false"
+              :value="'Discard'"
               :label="'Discard'"
-              style="width: 50%"
+              style="width: 33%"
+            />
+            <n-radio-button
+              :value="'Pay All'"
+              :label="'Pay All'"
+              style="width: 33%"
             />
           </n-radio-group>
         </n-form-item>
         <n-form-item
           label="Discarded By"
           path="discardId"
-          v-if="!formValue.isSelfDrawn"
+          v-if="formValue.winType !== 'Self Drawn'"
         >
           <n-card
             v-for="player in players"
