@@ -6,10 +6,15 @@ import { onBeforeMount, ref } from 'vue';
 import { NAvatar, NButton, NDatePicker, useMessage } from 'naive-ui';
 import { supabase } from '@/server/supabase';
 
+interface PlayerSum {
+  playerid: number,
+  playername?: string,
+  totalamount: number,
+}
 const players = ref<Player[]>([]);
-const playerSum = ref<Player[]>([]);
-const startDate = ref<Date | null>(null);
-const endDate = ref<Date | null>(null);
+const playerSum = ref<PlayerSum[]>([]);
+const startDate = ref<number | null>(null);
+const endDate = ref<number | null>(null);
 const message = useMessage();
 const showSummary = ref(false);
 
@@ -18,7 +23,7 @@ const getSummary = async () => {
   if (startDate.value && endDate.value) {
     const startD = new Date(startDate.value);
     const endD = new Date(endDate.value);
-    
+
     if (endD < startD)
       message.error("End Date can't be before Start Date");
     else {
@@ -32,10 +37,14 @@ const getSummary = async () => {
         if (error) {
           throw error;
         }
-        console.log('Summary data:', data);
         playerSum.value = data;
+        console.log('Summary data:', data);
       } catch (error) {
-        message.error("Error fetching summary data: " + error.message);
+        if (error instanceof Error) {
+          message.error("Error fetching summary data: " + error.message);
+        } else {
+          message.error("Unknown error occurred");
+        }
       }
     }
     console.log(startD.toLocaleDateString(), endD.toLocaleDateString());
@@ -45,7 +54,7 @@ const getSummary = async () => {
   }
 }
 
-const getTotalAmount = (playerId) => {
+const getTotalAmount = (playerId: any) => {
   const playerSummary = playerSum.value?.find((p) => p.playerid === playerId);
 
   return playerSummary ? playerSummary.totalamount / 10 : 0;
