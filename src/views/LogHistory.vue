@@ -16,6 +16,7 @@ interface PlayerData {
 
 interface GroupData {
   gameId?: number;
+  gamedate?: Date;
   player_data: PlayerData[];
   winnerId?: number;
   discardId?: number;
@@ -23,6 +24,7 @@ interface GroupData {
 interface Column {
   title: string;
   key: string;
+  render?: (row: GroupData) => string | number;
 }
 
 const columns = ref<Column[]>([]);
@@ -39,18 +41,18 @@ onBeforeMount(async () => {
     }
   }
 
-  const { data, error } = await supabase.rpc('get_record', {
-    limit_rows: 15
-  });
+  const { data, error } = await supabase.rpc('get_record', { limit_rows: '15' });
   if (error) {
     console.error('Error fetching records:', error.message);
   } else {
     historyData.value = data;
+    console.log(data);
   }
 
   groupedData.value = data.map((e: any) => {
     return {
       gameid: e.gameId,
+      gameDate: e.gameDate,
       player_data: e.player_data,
       winnerid: e.winnerId,
       discardid: e.discardId
@@ -64,10 +66,19 @@ onBeforeMount(async () => {
 function updateColumns() {
   if (groupedData.value.length > 0) {
     columns.value = [
+      {
+        title: 'Game Date',
+        key: 'gameDate',
+        render(row: GroupData) {
+          return row.gamedate
+            ? new Date(row.gamedate).toLocaleDateString()
+            : 'N/A';
+        }
+      },
       ...groupedData.value[0].player_data.map((player: PlayerData) => ({
         title: `${player.name}`,
         key: `player_${player.playerId}`,
-        render(row: any) {
+        render(row: GroupData) {
           return (
             row.player_data.find(
               (p: PlayerData) => p.playerId === player.playerId
@@ -89,7 +100,9 @@ watch(
 </script>
 
 <template>
-  <div class="content"><h3>History</h3></div>
+  <div class="content">
+    <h3>History</h3>
+  </div>
   <n-data-table :columns="columns" :data="historyData" />
 </template>
 <style scoped>
@@ -98,6 +111,7 @@ watch(
   left: 3%;
   top: 7%;
 }
+
 h3 {
   color: white;
 }

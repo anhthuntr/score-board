@@ -1,0 +1,10 @@
+packages:
+  - apps/**
+  - packages/**
+  - '!**/test/**'
+onlyBuiltDependencies:
+  - '@fortawesome/fontawesome-common-types'
+  - '@fortawesome/fontawesome-free'
+  - '@fortawesome/fontawesome-svg-core'
+  - '@fortawesome/free-solid-svg-icons'
+  - esbuild
