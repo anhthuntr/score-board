@@ -16,7 +16,7 @@ interface PlayerData {
 
 interface GroupData {
   gameId?: number;
-  gameDate?: Date;
+  gamedate?: Date;
   player_data: PlayerData[];
   winnerId?: number;
   discardId?: number;
@@ -70,8 +70,8 @@ function updateColumns() {
         title: 'Game Date',
         key: 'gameDate',
         render(row: GroupData) {
-          return row.gameDate
-            ? new Date(row.gameDate).toLocaleDateString()
+          return row.gamedate
+            ? new Date(row.gamedate).toLocaleDateString()
             : 'N/A';
         }
       },
