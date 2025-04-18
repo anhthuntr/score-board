@@ -16,8 +16,10 @@ import {
 import { Game, Player, PlayerGame } from '@/types';
 import { GameType, scoreRates } from '@/constants';
 import { api } from '@/server/api';
+import { useRouter } from 'vue-router';
 
 const players = ref<Player[]>([]);
+const message = useMessage();
 
 const playerScores = ref<PlayerGame[]>([]);
 
@@ -96,10 +98,8 @@ const addGame = async () => {
 
   await api.updatePlayersPoints(
     players.value.map((i) => ({
-      ...i,
-      totalPoints:
-        (i.totalPoints ?? 0) +
-        (playerScores.value.find((s) => s.playerId === i.id)?.amount ?? 0)
+      playerId: i.id ?? 0,
+      points: playerScores.value.find((s) => s.playerId === i.id)?.amount ?? 0
     }))
   );
 
@@ -110,6 +110,8 @@ const addGame = async () => {
 
   formValue.value = { winType: 'Self Drawn' };
   formRef.value?.restoreValidation();
+  const router = useRouter();
+  router.go(0);
 };
 
 const validateInput = (e: MouseEvent) => {

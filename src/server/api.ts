@@ -44,17 +44,30 @@ export const api = {
     return handleQuery<PlayerGame>(playerGamesQuery);
   },
 
-  async updatePlayersPoints(e: Player[]) {
-    console.log(e);
-    const updatePromises = e.map((p) => {
+  async updatePlayersPoints(e: { playerId: number; points: number }[]) {
+    const updatePromises = e.map(async (p) => {
+      const { data, error } = await supabase
+        .from('players')
+        .select('totalPoints')
+        .eq('id', p.playerId)
+        .single();
+
+      if (error) {
+        console.error(`Error fetching player ${p.playerId}:`, error);
+        return null;
+      }
+
+      const updatedPoints = (data?.totalPoints || 0) + (p.points || 0);
+
       const query = supabase
         .from('players')
-        .update(p)
-        .eq('id', p.id)
-        .select(`id`);
+        .update({ totalPoints: updatedPoints })
+        .eq('id', p.playerId)
+        .select('id');
 
       return handleQuery<Player>(query);
     });
+
     return Promise.all(updatePromises);
   },
 
@@ -67,5 +80,22 @@ export const api = {
       .order('name');
 
     return handleQuery<Player>(query);
+  },
+
+  async getPlayerGamesById(playerId: string) {
+    const { data, error } = await supabase
+      .from('PlayerGames')
+      .select('*')
+      .eq('playerId', playerId);
+
+    if (error) {
+      console.error(
+        `Error fetching PlayerGames for player ${playerId}:`,
+        error
+      );
+      return null;
+    }
+
+    return data;
   }
 };
